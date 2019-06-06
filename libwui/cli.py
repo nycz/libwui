@@ -59,7 +59,13 @@ def format_table(items: Iterable[Union[str, Iterable[str]]],
         unwrappable_space = sum(w for n, w in enumerate(max_widths)
                                 if n not in wrap_columns)
         wrappable_space = (term_size.columns - total_spacing
-                           - unwrappable_space) // strlen(wrap_columns)
+                           - unwrappable_space) // len(wrap_columns)
+        # Don't wrap columns that are too narrow anyway
+        for n in list(wrap_columns):
+            if max_widths[n] < wrappable_space:
+                wrap_columns.remove(n)
+                wrappable_space += (wrappable_space - max_widths[n]
+                                    ) // max(1, len(wrap_columns))
         for n in wrap_columns:
             max_widths[n] = wrappable_space
     else:
