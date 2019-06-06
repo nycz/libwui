@@ -28,7 +28,6 @@ def format_table(items: Iterable[Union[str, Iterable[str]]],
                  end_spacing: int = 2,
                  ) -> Iterable[str]:
     term_size = shutil.get_terminal_size()
-    wrap_columns = wrap_columns or set()
     surround_rows = surround_rows or dict()
     rows: List[Union[str, List[str]]] = []
     if titles:
@@ -45,6 +44,8 @@ def format_table(items: Iterable[Union[str, Iterable[str]]],
     max_widths = [max(strlen(row[col]) for row in rows
                       if not isinstance(row, str))
                   for col in range(max_row_length)]
+    wrap_columns = {w if w >= 0 else len(max_widths) + w
+                    for w in wrap_columns or []}
     total_spacing = (strlen(max_widths) - 1) * column_spacing + end_spacing
     if sum(max_widths) + total_spacing > term_size.columns and wrap_columns:
         unwrappable_space = sum(w for n, w in enumerate(max_widths)
