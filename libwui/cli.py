@@ -3,7 +3,7 @@ from pathlib import Path
 import shutil
 import sys
 import textwrap
-from typing import (Any, Callable, Collection, Dict, Iterable,
+from typing import (Any, Callable, Collection, Dict, FrozenSet, Iterable,
                     List, NamedTuple, NoReturn, Optional, Set,
                     Tuple, Union)
 
@@ -20,12 +20,19 @@ def warn(message: str) -> None:
     print(f'{YELLOW}Warning:{RESET} {message}')
 
 
+# == Table ==
+
+class TooNarrowColumn(Exception):
+    pass
+
+
 def format_table(items: Iterable[Union[str, Iterable[str]]],
                  column_spacing: int = 2,
                  wrap_columns: Optional[Collection[int]] = None,
                  titles: Optional[Iterable[str]] = None,
                  surround_rows: Optional[Dict[int, Tuple[str, str]]] = None,
                  end_spacing: int = 2,
+                 require_min_widths: FrozenSet[Tuple[int, int]] = frozenset(),
                  ) -> Iterable[str]:
     term_size = shutil.get_terminal_size()
     surround_rows = surround_rows or dict()
@@ -56,6 +63,9 @@ def format_table(items: Iterable[Union[str, Iterable[str]]],
             max_widths[n] = wrappable_space
     else:
         wrappable_space = -1
+    for pos, min_width in require_min_widths:
+        if max_widths[pos] < min_width:
+            raise TooNarrowColumn
     if titles:
         rows.insert(1, '-' * (sum(max_widths) + total_spacing))
         surround_rows[-2] = (BOLD, RESET)
