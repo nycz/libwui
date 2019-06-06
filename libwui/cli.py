@@ -1,5 +1,6 @@
 from itertools import zip_longest
 from pathlib import Path
+import shlex
 import shutil
 import sys
 import textwrap
@@ -141,12 +142,25 @@ class CommandDef(NamedTuple):
     help_: CommandHelp
 
 
+def expand_aliases(args: Iterable[str], aliases: Dict[str, str]
+                   ) -> Iterable[str]:
+    for arg in args:
+        if arg.startswith('@'):
+            alias = arg[1:]
+            if alias not in aliases:
+                error(f'unknown alias: {alias}')
+            yield from shlex.split(aliases[alias])
+        else:
+            yield arg
+
+
 def parse_cmds(commands: Dict[str, CommandDef],
-               callback: Callable[[_RunFunc, List[str]], None]) -> None:
+               callback: Callable[[_RunFunc, List[str]], None],
+               aliases: Optional[Dict[str, str]] = None) -> None:
     help_aliases = {'-h', '--help', 'help'}
     sys_cmd = Path(sys.argv[0]).name
     show_help = False
-    args = sys.argv[1:]
+    args = list(expand_aliases(sys.argv[1:], aliases or {}))
     if not args or len(args) == 1 and args[0] in help_aliases:
         print(f'{BOLD}Usage:{RESET} {sys_cmd} '
               f'[-h | --help] <command> [<arguments>]')
