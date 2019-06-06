@@ -10,6 +10,8 @@ from typing import (Any, Callable, Collection, Dict, Iterable,
 from .colors import BOLD, CYAN, RED, RESET, YELLOW, strlen
 
 
+# == Helper functions ==
+
 def error(message: str) -> NoReturn:
     sys.exit(f'{RED}Error:{RESET} {message}')
 
@@ -73,6 +75,8 @@ def format_table(items: Iterable[Union[str, Iterable[str]]],
                 yield prefix + line + suffix
 
 
+# == Command parsing ==
+
 def arg_tags(args: List[str], option_name: str) -> Set[str]:
     tags = set()
     while args and not args[0].startswith('-'):
@@ -128,7 +132,7 @@ class CommandDef(NamedTuple):
 
 def parse_cmds(commands: Dict[str, CommandDef],
                callback: Callable[[_RunFunc, List[str]], None]) -> None:
-    help_aliases = {'-h', '--help'}
+    help_aliases = {'-h', '--help', 'help'}
     sys_cmd = Path(sys.argv[0]).name
     show_help = False
     args = sys.argv[1:]
