@@ -20,7 +20,7 @@ RESET = _a('0')
 
 
 def clean_esc(text: str) -> str:
-    return re.sub(r'\x1b\[[0-9;]m', '', text)
+    return re.sub(r'\x1b\[[0-9;]*m', '', text)
 
 
 def strlen(val: Sized) -> int:
