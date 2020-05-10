@@ -17,6 +17,9 @@ MAGENTA = _a('35')
 CYAN = _a('36')
 WHITE = _a('37')
 RESET = _a('0')
+NO_BOLD = _a('22')
+DEF_FG = _a('39')
+DEF_BG = _a('49')
 
 
 def clean_esc(text: str) -> str:
@@ -29,3 +32,11 @@ def strlen(val: Sized) -> int:
         return len(clean_esc(val))
     else:
         return len(val)
+
+
+def rgb_fg(r: int, g: int, b: int) -> str:
+    return _a(f'38;2;{r};{g};{b}')
+
+
+def rgb_bg(r: int, g: int, b: int) -> str:
+    return _a(f'48;2;{r};{g};{b}')

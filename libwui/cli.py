@@ -1,4 +1,5 @@
 from itertools import zip_longest
+import math
 from pathlib import Path
 import shlex
 import shutil
@@ -31,12 +32,17 @@ def format_table(items: Iterable[Union[str, Iterable[str]]],
                  column_spacing: int = 2,
                  wrap_columns: Optional[Collection[int]] = None,
                  titles: Optional[Iterable[str]] = None,
+                 title_sep_color: str = CYAN,
+                 title_sep_char: str = '-',
                  surround_rows: Optional[Dict[int, Tuple[str, str]]] = None,
+                 striped_row_bg: Optional[str] = None,
                  end_spacing: int = 2,
                  require_min_widths: FrozenSet[Tuple[int, int]] = frozenset(),
+                 column_formats: Optional[Dict[int, Tuple[str, str]]] = None,
                  ) -> Iterable[str]:
     term_size = shutil.get_terminal_size()
     surround_rows = surround_rows or dict()
+    column_formats = column_formats or dict()
     rows: List[Union[str, List[str]]] = []
     if titles:
         rows.append(list(titles))
@@ -74,11 +80,25 @@ def format_table(items: Iterable[Union[str, Iterable[str]]],
         if max_widths[pos] < min_width:
             raise TooNarrowColumn
     if titles:
-        rows.insert(1, '-' * (sum(max_widths) + total_spacing))
+        title_sep_line_width = sum(max_widths) + total_spacing
+        title_sep_line = title_sep_char * math.ceil(title_sep_line_width
+                                                    / len(title_sep_char))
+        rows.insert(1, title_sep_line[:title_sep_line_width])
         surround_rows[-2] = (BOLD, RESET)
-        surround_rows[-1] = (CYAN, RESET)
+        surround_rows[-1] = (title_sep_color, RESET)
+
+    def format_column(row: int, column: int, text: str) -> str:
+        if row >= 0 and column_formats and column in column_formats:
+            prefix, suffix = column_formats[column]
+            return prefix + text + suffix
+        else:
+            return text
+
     for row_num, row in enumerate(rows, -2 if titles else 0):
         prefix, suffix = surround_rows.get(row_num, ('', ''))
+        if striped_row_bg is not None and row_num > 0 and row_num % 2 == 1:
+            prefix += striped_row_bg
+            suffix += '\x1b[K' + RESET
         if isinstance(row, str):
             yield prefix + row + suffix
         else:
@@ -87,7 +107,8 @@ def format_table(items: Iterable[Union[str, Iterable[str]]],
                      else [cell]
                      for n, cell in enumerate(row)]
             for subrow in zip_longest(*cells):
-                subcells = ((c or '') + (' ' * (max_widths[n] - strlen(c or '')))
+                subcells = (format_column(row_num, n, c or '')
+                            + (' ' * (max_widths[n] - strlen(c or '')))
                             for n, c in enumerate(subrow))
                 line = (' ' * column_spacing).join(subcells).rstrip()
                 yield prefix + line + suffix
@@ -122,6 +143,14 @@ def arg_disallow_trailing(args: List[str]) -> None:
 def arg_disallow_positional(arg: str) -> None:
     if not arg.startswith('-'):
         error(f'unknown positional argument: {arg}')
+
+
+def arg_flags(arg: str) -> List[str]:
+    if arg.startswith('-') and not arg.startswith('--'):
+        flags = list(arg[1:])
+        if flags:
+            return flags
+    return []
 
 
 def arg_unknown_optional(arg: str) -> None:
